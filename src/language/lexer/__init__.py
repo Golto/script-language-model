@@ -5,5 +5,5 @@ __all__ = [
     "Token",
     "TokenType",
     "Lexer",
-    "LexicalError"
+    "LanguageLexicalError"
 ]
