@@ -48,6 +48,8 @@ do
 endwhile
 break
 continue
+input
+output
 """
 
 
@@ -119,6 +121,8 @@ class LexerTests:
             (TokenType.ENDWHILE, "endwhile"),
             (TokenType.BREAK, "break"),
             (TokenType.CONTINUE, "continue"),
+            (TokenType.INPUT, "input"),
+            (TokenType.OUTPUT, "output"),
             (TokenType.EOF, "")
         ]
 

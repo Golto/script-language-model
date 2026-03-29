@@ -59,6 +59,9 @@ class Lexer:
             'endwhile': TokenType.ENDWHILE,
             'break': TokenType.BREAK,
             'continue': TokenType.CONTINUE,
+            # I/O
+            'input': TokenType.INPUT,
+            'output': TokenType.OUTPUT
         }
 
 

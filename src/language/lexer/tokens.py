@@ -45,6 +45,9 @@ class TokenType(Enum):
     ENDWHILE = "ENDWHILE"
     BREAK = "BREAK"
     CONTINUE = "CONTINUE"
+    # I/O
+    INPUT = "INPUT"
+    OUTPUT = "OUTPUT"
     # Special
     EOF = "EOF"
     NEWLINE = "NEWLINE"
