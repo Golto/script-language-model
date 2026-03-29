@@ -11,13 +11,18 @@ from .statement import _StatementEvaluator
 
 # ─── Evaluator ────────────────────────────────────────────────────────────────
 
+
+InputFn  = Callable[[str], ValidRegisterType]
+OutputFn = Callable[[ValidRegisterType], None]
+
+
 class Evaluator:
 
     def __init__(
         self,
         env: Optional[Environment] = None,
-        input_fn: Optional[Callable[[str], ValidRegisterType]] = None,
-        output_fn: Optional[Callable[[ValidRegisterType], None]] = None,
+        input_fn: Optional[InputFn] = None,
+        output_fn: Optional[OutputFn] = None,
     ):
         self.env = env or Environment()
         self.input_fn = input_fn or self._default_input
