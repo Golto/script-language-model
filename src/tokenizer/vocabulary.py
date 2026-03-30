@@ -1,5 +1,7 @@
 from typing import Dict
 
+BOS_TOKEN = '<BOS>'
+EOS_TOKEN = '<EOS>'
 VOCAB = [
     # Chiffres et point décimal
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.',
@@ -21,9 +23,13 @@ VOCAB = [
     'while', 'do', 'endwhile',
     'break', 'continue',
     'input', 'output',
+    # Spéciaux
+    BOS_TOKEN, EOS_TOKEN
 ]
 
 TOKEN_TO_ID: Dict[str, int] = {tok: idx for idx, tok in enumerate(VOCAB)}
 ID_TO_TOKEN: Dict[int, str] = {idx: tok for idx, tok in enumerate(VOCAB)}
 
-VOCAB_SIZE = len(VOCAB)  # 58
+VOCAB_SIZE = len(VOCAB)  # 61
+BOS_ID     = TOKEN_TO_ID[BOS_TOKEN]
+EOS_ID     = TOKEN_TO_ID[EOS_TOKEN]

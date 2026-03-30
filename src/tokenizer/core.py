@@ -1,7 +1,12 @@
 from typing import List
 from src.language.lexer import Lexer
 from src.language.lexer.tokens import TokenType
-from .vocabulary import TOKEN_TO_ID, ID_TO_TOKEN, VOCAB_SIZE
+from .vocabulary import (
+    TOKEN_TO_ID, ID_TO_TOKEN, 
+    VOCAB_SIZE, 
+    BOS_TOKEN, EOS_TOKEN,
+    BOS_ID, EOS_ID
+)
 
 
 
@@ -20,15 +25,19 @@ class LanguageTokenizer:
     """
 
     VOCAB_SIZE = VOCAB_SIZE
+    BOS_ID     = BOS_ID
+    EOS_ID     = EOS_ID
     DIGIT_CHARS = set('0123456789.')
 
     # ── Encode ────────────────────────────────────────────────────────────────
 
-    def encode(self, source: str) -> List[int]:
+    def encode(self, source: str, add_special_tokens: bool = True) -> List[int]:
         tokens = self._lex(source)
         ids = []
         for tok in tokens:
             ids.extend(self._token_to_ids(tok))
+        if add_special_tokens:
+            ids = [BOS_ID] + ids + [EOS_ID]
         return ids
 
 
@@ -67,13 +76,15 @@ class LanguageTokenizer:
 
     # ── Decode ────────────────────────────────────────────────────────────────
 
-    def decode(self, ids: List[int]) -> List[str]:
-        """Retourne la liste des tokens correspondant aux ids."""
+    def decode(self, ids: List[int], skip_special_tokens: bool = True) -> List[str]:
         result = []
         for i in ids:
             if i not in ID_TO_TOKEN:
                 raise UnknownTokenError(f"id={i}")
-            result.append(ID_TO_TOKEN[i])
+            tok = ID_TO_TOKEN[i]
+            if skip_special_tokens and tok in (BOS_TOKEN, EOS_TOKEN):
+                continue
+            result.append(tok)
         return result
 
     def decode_str(self, ids: list[int]) -> str:
