@@ -16,6 +16,13 @@ _ALL_REGISTERS = [f"r{i}" for i in range(16)]
 
 _REG_RE = re.compile(r'\br(\d+)\b')
 
+_COMPARISON_FLIP = {
+    '>': '<', 
+    '<': '>', 
+    '>=': '<=', 
+    '<=': '>=',
+}
+
 
 def _used_registers(source: str) -> List[str]:
     """Retourne la liste ordonnée des registres présents dans le source."""
@@ -27,7 +34,7 @@ def _used_registers(source: str) -> List[str]:
     return seen
 
 
-def augment_registers(source: str, rng: Optional[random.Random] = None) -> str:
+def augment_registers(source: str, rng: random.Random) -> str:
     """
     Renomme les registres utilisés vers un sous-ensemble aléatoire disjoint.
 
@@ -38,7 +45,6 @@ def augment_registers(source: str, rng: Optional[random.Random] = None) -> str:
     Garantit l'absence de conflits : le mapping est construit en une passe
     puis appliqué via un placeholder intermédiaire.
     """
-    rng = rng or random.Random()
     used = _used_registers(source)
 
     if not used:
@@ -66,6 +72,20 @@ def augment_registers(source: str, rng: Optional[random.Random] = None) -> str:
 
     return result
 
+
+def augment_flip_comparison(source: str, rng: random.Random) -> str:
+    """Inverse aléatoirement une comparaison en swappant opérandes et opérateur."""
+    # Matche: expr OP expr (simplifié pour registres et entiers)
+    pattern = re.compile(r'(r\d+|\d+)\s*(>=|<=|>|<)\s*(r\d+|\d+)')
+    
+    matches = list(pattern.finditer(source))
+    if not matches:
+        return source
+    
+    m = rng.choice(matches)
+    left, op, right = m.group(1), m.group(2), m.group(3)
+    flipped = f"{right} {_COMPARISON_FLIP[op]} {left}"
+    return source[:m.start()] + flipped + source[m.end():]
 
 # ─── Dataset ──────────────────────────────────────────────────────────────────
 
@@ -120,10 +140,14 @@ class ProgramDataset(Dataset):
         # Original
         self._add_snippet(source)
 
-        # Variantes registres
+        
         if with_data_augmentation:
+            # Variantes registres
             for _ in range(self.register_copies):
                 self._add_snippet(augment_registers(source, self._rng))
+
+            # # Variante comparaison inversée
+            # self._add_snippet(augment_flip_comparison(source, self._rng))
     
 
     def _add_snippet(self, source: str) -> None:
