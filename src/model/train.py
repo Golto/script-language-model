@@ -58,6 +58,7 @@ def train(
     model_config:   ModelConfig  = None,
     train_config:   TrainConfig  = None,
     on_epoch_end:   Callable[[int, float, float | None], None] | None = None,
+    with_data_augmentation: bool = True,
 ) -> NextTokenTransformer:
     """
     Entraîne le modèle et retourne le modèle entraîné.
@@ -78,7 +79,7 @@ def train(
         raise ValueError("Aucun snippet chargé — vérifier snippet_files dans TrainConfig")
 
     tokenizer = LanguageTokenizer()
-    dataset   = ProgramDataset(snippets, model_config, tokenizer)
+    dataset   = ProgramDataset(snippets, model_config, tokenizer, with_data_augmentation=with_data_augmentation)
 
     val_size   = max(1, int(len(dataset) * train_config.val_split))
     train_size = len(dataset) - val_size
