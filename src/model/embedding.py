@@ -29,6 +29,18 @@ class PositionalEncoding(nn.Module):
         return self.dropout(x)
 
 
+class LearnedPositionalEncoding(nn.Module):
+    def __init__(self, d_model: int, max_seq_len: int, dropout: float):
+        super().__init__()
+        self.pos_embedding = nn.Embedding(max_seq_len, d_model)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x : (batch, seq_len, d_model)
+        positions = torch.arange(x.size(1), device=x.device).unsqueeze(0)
+        return self.dropout(x + self.pos_embedding(positions))
+
+
 class TokenEmbedding(nn.Module):
     """
     Lookup table + encodage positionnel.
@@ -42,7 +54,7 @@ class TokenEmbedding(nn.Module):
             config.d_model,
             padding_idx=config.pad_id,
         )
-        self.pos_encoding = PositionalEncoding(
+        self.pos_encoding = LearnedPositionalEncoding(
             config.d_model,
             config.max_seq_len,
             config.dropout,
