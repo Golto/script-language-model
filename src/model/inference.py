@@ -24,9 +24,11 @@ def load_checkpoint(
     if not path.exists():
         raise FileNotFoundError(f"Checkpoint introuvable : {path}")
 
-    ckpt = torch.load(path, map_location=device, weights_only=False)
+    ckpt = torch.load(path, map_location=device, weights_only=True)
 
-    config = ckpt.get("model_config") or ModelConfig()
+    config_dict = ckpt.get("model_config")
+    config = ModelConfig(**config_dict) if isinstance(config_dict, dict) else ModelConfig()
+
     model  = NextTokenTransformer(config).to(device)
     model.load_state_dict(ckpt["model_state"])
     model.eval()

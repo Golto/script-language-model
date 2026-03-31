@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
 from pathlib import Path
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import List, Callable
 
 from src.data.snippet import parse_snippet_file, CodeSnippet
@@ -27,6 +27,9 @@ class TrainConfig:
     lr:             float       = 3e-4
     weight_decay:   float       = 1e-2
     grad_clip:      float       = 1.0
+
+    # Reprise
+    resume_from:    str | None  = None 
 
     # Sauvegarde
     checkpoint_dir: str         = ".private/checkpoints"
@@ -98,15 +101,32 @@ def train(
     optimizer = torch.optim.AdamW(model.parameters(),
                                   lr=train_config.lr,
                                   weight_decay=train_config.weight_decay)
+
+    # ── Reprise depuis checkpoint ─────────────────────────────────────────────
+    start_epoch = 1
+    if train_config.resume_from:
+        ckpt = torch.load(train_config.resume_from, map_location=device)
+        model.load_state_dict(ckpt["model_state"])
+        optimizer.load_state_dict(ckpt["optimizer"])
+        start_epoch = ckpt["epoch"] + 1
+        print(f"Reprise depuis epoch {ckpt['epoch']} "
+              f"(train={ckpt.get('train_loss', '?'):.4f})")
+
+    # epochs / remaining epochs
+    remaining_epochs = train_config.epochs - (start_epoch - 1)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=train_config.epochs
+        optimizer, T_max=max(remaining_epochs, 1)
     )
-    criterion = nn.CrossEntropyLoss(ignore_index=pad_id)
+
+    # NOTE <EOS> 5x poids
+    weight = torch.ones(model_config.vocab_size)
+    weight[model_config.eos_id] = 5.0   
+    criterion = nn.CrossEntropyLoss(ignore_index=pad_id, weight=weight.to(device))
 
     Path(train_config.checkpoint_dir).mkdir(parents=True, exist_ok=True)
 
     # ── Epochs ────────────────────────────────────────────────────────────────
-    for epoch in range(1, train_config.epochs + 1):
+    for epoch in range(start_epoch, train_config.epochs + 1):
 
         # — Train —
         model.train()
@@ -162,7 +182,7 @@ def train(
                 "optimizer":    optimizer.state_dict(),
                 "train_loss":   train_loss,
                 "val_loss":     val_loss,
-                "model_config": model_config,
+                "model_config": asdict(model_config),
             }, ckpt_path)
 
     return model
