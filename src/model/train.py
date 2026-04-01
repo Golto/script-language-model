@@ -118,10 +118,7 @@ def train(
         optimizer, T_max=max(remaining_epochs, 1)
     )
 
-    # NOTE <EOS> 5x poids
-    weight = torch.ones(model_config.vocab_size)
-    weight[model_config.eos_id] = 5.0   
-    criterion = nn.CrossEntropyLoss(ignore_index=pad_id, weight=weight.to(device))
+    criterion = nn.CrossEntropyLoss(ignore_index=pad_id)
 
     Path(train_config.checkpoint_dir).mkdir(parents=True, exist_ok=True)
 

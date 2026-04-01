@@ -5,7 +5,7 @@ from .vocabulary import (
     TOKEN_TO_ID, ID_TO_TOKEN, 
     VOCAB_SIZE, 
     BOS_TOKEN, EOS_TOKEN,
-    BOS_ID, EOS_ID
+    BOS_ID, EOS_ID, PAD_ID
 )
 
 
@@ -27,6 +27,7 @@ class LanguageTokenizer:
     VOCAB_SIZE = VOCAB_SIZE
     BOS_ID     = BOS_ID
     EOS_ID     = EOS_ID
+    PAD_ID     = PAD_ID
     DIGIT_CHARS = set('0123456789.')
 
     # ── Encode ────────────────────────────────────────────────────────────────

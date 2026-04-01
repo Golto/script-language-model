@@ -146,7 +146,7 @@ class ProgramDataset(Dataset):
             for _ in range(self.register_copies):
                 self._add_snippet(augment_registers(source, self._rng))
 
-            # # Variante comparaison inversée
+            # # Variante comparaison inversée FIXME
             # self._add_snippet(augment_flip_comparison(source, self._rng))
     
 

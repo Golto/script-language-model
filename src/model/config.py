@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from src.tokenizer.vocabulary import VOCAB_SIZE, BOS_ID, EOS_ID
+from src.tokenizer.vocabulary import VOCAB_SIZE, BOS_ID, EOS_ID, PAD_ID
 
 
 @dataclass
@@ -20,4 +20,4 @@ class ModelConfig:
     # Tokens spéciaux
     bos_id:        int = BOS_ID
     eos_id:        int = EOS_ID
-    pad_id:        int = EOS_ID
+    pad_id:        int = PAD_ID
