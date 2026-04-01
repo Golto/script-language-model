@@ -5,17 +5,12 @@ import time
 import random
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Iterator, List, Tuple, Optional
+from typing import Callable, List
 
 import ollama
 
-from src.language import Interpreter
-from src.language.evaluator.environment import ValidRegisterType
-from src.language.lexer.core import LanguageLexicalError
-from src.language.parser.base import LanguageSyntaxicalError
-from src.language.evaluator.exception import LanguageExecutionError
-from src.data.snippet import parse_snippets, CodeSnippet, SnippetParseError
-
+from .snippet import parse_snippets, CodeSnippet, SnippetParseError
+from .file import validate_snippet, flush_file
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -103,35 +98,6 @@ def _make_user_prompt(n: int, theme: str) -> str:
         f"Generate exactly {n} different snippets about: {theme}.\n"
         f"Follow the format strictly. No explanation, no markdown, only the snippets."
     )
-
-
-# ─── Validation ───────────────────────────────────────────────────────────────
-
-def _silent_input(register_name: str) -> ValidRegisterType:
-    """Input factice pour la validation, retourne 1 pour tout registre."""
-    return 1
-
-def _silent_output(value: ValidRegisterType) -> None:
-    pass
-
-
-def validate_snippet(snippet: CodeSnippet) -> Tuple[bool, Optional[str]]:
-    """
-    Tente d'exécuter le snippet avec des inputs factices.
-    Retourne (True, None) si valide, (False, raison) sinon.
-    """
-    interpreter = Interpreter()
-    try:
-        interpreter.execute(
-            snippet.content,
-            input_fn=_silent_input,
-            output_fn=_silent_output,
-        )
-        return True, None
-    except (LanguageLexicalError, LanguageSyntaxicalError, LanguageExecutionError) as e:
-        return False, str(e)
-    except Exception as e:
-        return False, f"Erreur inattendue: {e}"
     
 
 # ─── Génération ───────────────────────────────────────────────────────────────
@@ -212,7 +178,7 @@ def generate_snippets(
 
                 # Flush vers fichier quand le buffer est plein
                 if len(file_buffer) >= config.snippets_per_file:
-                    _flush_file(file_buffer, file_index, output_dir)
+                    flush_file(file_buffer, file_index, output_dir)
                     file_buffer = []
                     file_index += 1
             else:
@@ -221,22 +187,6 @@ def generate_snippets(
 
     # Flush le reste
     if file_buffer:
-        _flush_file(file_buffer, file_index, output_dir)
+        flush_file(file_buffer, file_index, output_dir)
 
     return accepted
-
-
-def _flush_file(
-    snippets: List[CodeSnippet],
-    file_index: int,
-    output_dir: Path,
-) -> None:
-    """Écrit un fichier snippet_gXXXX ."""
-    filename = output_dir / f"snippet_g{file_index:04d}"
-    lines = []
-    for i, s in enumerate(snippets):
-        if i > 0:
-            lines.append("")   # ligne vide entre snippets
-        lines.append(f"// {s.name}: {s.description} {s.signature}")
-        lines.append(s.content)
-    filename.write_text("\n".join(lines), encoding="utf-8")
