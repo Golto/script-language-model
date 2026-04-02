@@ -43,14 +43,15 @@ def flush_file(
     snippets: List[CodeSnippet],
     file_index: int,
     output_dir: Path,
-    char: str = "g"
 ) -> None:
     """Écrit un fichier snippet_gXXXX ."""
-    if len(char) > 1:
-        raise ValueError("`char` doit être un caractère.")
-    filename = output_dir / f"snippet_{char}{file_index:04d}"
+    filename = output_dir / f"snippet_g{file_index:04d}"
+    flush_snippets(snippets, filename)
+
+
+def flush_snippets(snippets: List[CodeSnippet], path: Path) -> None:
     lines = []
     for i, s in enumerate(snippets):
         lines.append(f"// {s.name}: {s.description} {s.signature}")
         lines.append(s.content)
-    filename.write_text("\n".join(lines), encoding="utf-8")
+    path.write_text("\n".join(lines), encoding="utf-8")

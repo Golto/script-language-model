@@ -62,6 +62,7 @@ def train(
     train_config:   TrainConfig  = None,
     on_epoch_end:   Callable[[int, float, float | None], None] | None = None,
     with_data_augmentation: bool = True,
+    reset_optimizer:    bool = False,
 ) -> NextTokenTransformer:
     """
     Entraîne le modèle et retourne le modèle entraîné.
@@ -103,14 +104,16 @@ def train(
                                   weight_decay=train_config.weight_decay)
 
     # ── Reprise depuis checkpoint ─────────────────────────────────────────────
-    start_epoch = 1
     if train_config.resume_from:
         ckpt = torch.load(train_config.resume_from, map_location=device)
         model.load_state_dict(ckpt["model_state"])
-        optimizer.load_state_dict(ckpt["optimizer"])
-        start_epoch = ckpt["epoch"] + 1
-        print(f"Reprise depuis epoch {ckpt['epoch']} "
-              f"(train={ckpt.get('train_loss', '?'):.4f})")
+        if not reset_optimizer:           # ← conditionnel
+            optimizer.load_state_dict(ckpt["optimizer"])
+            start_epoch = ckpt["epoch"] + 1
+        else:
+            start_epoch = 1               # epochs comptées depuis 1, LR frais
+        print(f"Poids chargés depuis epoch {ckpt['epoch']}"
+              + (" (optimizer réinitialisé)" if reset_optimizer else ""))
 
     # epochs / remaining epochs
     remaining_epochs = train_config.epochs - (start_epoch - 1)
