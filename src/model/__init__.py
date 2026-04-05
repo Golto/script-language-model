@@ -1,7 +1,7 @@
 from .config import ModelConfig
 from .embedding import TokenEmbedding, PositionalEncoding
 from .transformer import NextTokenTransformer
-from .train import TrainConfig, train
+from .training import TrainConfig, train_foundation
 from .inference import Inference
 
 __all__ = [
@@ -10,6 +10,6 @@ __all__ = [
     "PositionalEncoding",
     "NextTokenTransformer",
     "TrainConfig",
-    "train",
+    "train_foundation",
     "Inference"
 ]
