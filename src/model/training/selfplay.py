@@ -10,6 +10,7 @@ from typing import Callable, List, Optional
 
 from src.data.snippet import CodeSnippet
 from src.data.file import validate_snippet, flush_snippets
+from src.data.scorer import SnippetScorer
 from src.model.config import ModelConfig
 from src.model.inference import Inference
 from src.model.transformer import NextTokenTransformer
@@ -19,8 +20,6 @@ from .foundation import train_foundation
 
 
 # ─── Config ───────────────────────────────────────────────────────────────────
-
-SnippetScorer = Callable[[CodeSnippet], bool]
 
 
 @dataclass
