@@ -1,8 +1,11 @@
 from typing import Dict
 
-BOS_TOKEN = '<BOS>'
-EOS_TOKEN = '<EOS>'
-PAD_TOKEN = '<PAD>'
+BOS_TOKEN = '<|sequence>'
+EOS_TOKEN = '<sequence|>'
+PAD_TOKEN = '<|padding|>'
+
+SPEC_START_TOKEN = '<|specification>'
+SPEC_END_TOKEN = '<specification|>'
 
 VOCAB = [
     # Chiffres et point décimal
@@ -25,14 +28,20 @@ VOCAB = [
     'while', 'do', 'endwhile',
     'break', 'continue',
     'input', 'output',
-    # Spéciaux
+    # Spéciaux (complétion)
     BOS_TOKEN, EOS_TOKEN, PAD_TOKEN,
+    # Spécifications
+    'input-type', 'output-type',
+    'int', 'float', 'bool', 'number',
+    'example', 'return',
+    # Spéciaux (instruct)
+    SPEC_START_TOKEN, SPEC_END_TOKEN
 ]
 
 TOKEN_TO_ID: Dict[str, int] = {tok: idx for idx, tok in enumerate(VOCAB)}
 ID_TO_TOKEN: Dict[int, str] = {idx: tok for idx, tok in enumerate(VOCAB)}
 
-VOCAB_SIZE = len(VOCAB)  # 62
+VOCAB_SIZE = len(VOCAB)
 BOS_ID     = TOKEN_TO_ID[BOS_TOKEN]
 EOS_ID     = TOKEN_TO_ID[EOS_TOKEN]
 PAD_ID     = TOKEN_TO_ID[PAD_TOKEN]
