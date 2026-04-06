@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import math
 import random
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple, Literal
@@ -144,7 +145,18 @@ def _run_with_inputs(
             return 0
 
     def output_fn(value: ValidRegisterType) -> None:
+
+        if isinstance(value, int) and type(value) is not bool:
+            # fix: notation scientifique e+yy n'est pas tokenisable
+            #      si mise en notation scientifique (10**15), on filtre
+            if abs(value) >= 10**15:
+                raise OverflowError("Entier trop grand")
+            
         if isinstance(value, float):
+
+            if math.isinf(value) or math.isnan(value) or abs(value) >= 10**15:
+                raise ValueError("Valeur infinie ou NaN générée")
+            
             # fix: notation scientifique x.xe+-yy n'est pas tokenisable
             #      arrondi pour l'éviter
             value = round(value, 4)
