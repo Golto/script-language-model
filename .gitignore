@@ -12,3 +12,4 @@ wheels/
 # Private files
 .private/
 debug*.ipynb
+debug*.py
