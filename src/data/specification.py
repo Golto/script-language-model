@@ -144,7 +144,15 @@ def _run_with_inputs(
             return 0
 
     def output_fn(value: ValidRegisterType) -> None:
-        # TODO arrondir output float : round( . , 3)
+        if isinstance(value, float):
+            # fix: notation scientifique x.xe+-yy n'est pas tokenisable
+            #      arrondi pour l'éviter
+            value = round(value, 4)
+
+            # pour éviter un "-0.0"
+            if value == 0.0:
+                value = 0.0 
+        
         outputs.append(value)
 
     try:
