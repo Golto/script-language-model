@@ -20,8 +20,8 @@ def train_foundation(
 
     dataset = FoundationDataset.from_files(
         snippet_files,
-        config = model_config,
-        augment = augment,
+        config=model_config,
+        augment=augment,
     )
 
     return Trainer(model_config, train_config).run(dataset, on_epoch_end)
