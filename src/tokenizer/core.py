@@ -133,33 +133,62 @@ class LanguageTokenizer:
             result.append(tok)
         return result
 
-
-    def decode_str(self, ids: List[int], skip_special_tokens: bool = True) -> str:
-        """Retourne une représentation lisible (espace entre tokens)."""
+    def decode_str(
+        self, 
+        ids: List[int], 
+        skip_special_tokens: bool = True, 
+        indent: Optional[int] = None
+    ) -> str:
+        """
+        Retourne une représentation lisible (espace entre tokens).
+        Si `indent` est fourni (ex: 4), le code sera automatiquement indenté.
+        """
         tokens = self.decode(ids, skip_special_tokens=skip_special_tokens)
         parts = []
-        i = 0
-        while i < len(tokens):
-            token = tokens[i]
+        index = 0
 
+        current_indent = 0
+        is_new_line = True
+
+        while index < len(tokens):
+            token = tokens[index]
+
+            # Saut de ligne
             if token == '\n':
                 if parts and parts[-1] == ' ':
                     parts.pop()
                 parts.append('\n')
-                i += 1
+                is_new_line = True
+                index += 1
                 continue
+            
+            # 1. Ajuster l'indentation (diminution)
+            if indent is not None:
+                if token in ('endif', 'endwhile', 'else'):
+                    current_indent = max(0, current_indent - 1)
+                
+                if is_new_line:
+                    parts.append(' ' * (current_indent * indent))
+                    is_new_line = False
 
+            # 2. Reconstruire les nombres / Ajouter le token courant
             if token in self.DIGIT_CHARS:
                 num = ''
-                while i < len(tokens) and tokens[i] in self.DIGIT_CHARS:
-                    num += tokens[i]
-                    i += 1
+                while index < len(tokens) and tokens[index] in self.DIGIT_CHARS:
+                    num += tokens[index]
+                    index += 1
                 parts.append(num)
             else:
                 parts.append(token)
-                i += 1
+                index += 1
 
-            if i < len(tokens) and tokens[i] != '\n':
+            # 3. Ajuster l'indentation (augmentation)
+            if indent is not None:
+                if token in ('then', 'do', 'else'):
+                    current_indent += 1
+
+            # 4. Ajouter un espace d'espacement si le prochain n'est pas un saut de ligne
+            if index < len(tokens) and tokens[index] != '\n':
                 parts.append(' ')
 
         return ''.join(parts)
