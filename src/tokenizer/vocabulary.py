@@ -33,7 +33,7 @@ VOCAB = [
     # Spécifications
     'input-type', 'output-type',
     'int', 'float', 'bool', 'number',
-    'example', 'return',
+    'example', 'return', ",",
     # Spéciaux (instruct)
     SPEC_START_TOKEN, SPEC_END_TOKEN
 ]

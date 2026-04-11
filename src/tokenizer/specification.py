@@ -41,8 +41,8 @@ def encode_specification(spec: ProgramSpecification) -> List[str]:
         
         output-type float
         
-        example 1 . 0 - 5 . 0 return 4 . 0
-        example 2 . 1 3 . 7 return 5 . 8
+        example 1 . 0 , - 5 . 0 return 4 . 0
+        example 2 . 1 , 3 . 7 return 5 . 8
         <specification|>
         ```
     """
@@ -63,11 +63,19 @@ def encode_specification(spec: ProgramSpecification) -> List[str]:
         tokens.append("\n")
         for ex in spec.examples:
             tokens.append("example")
-            for v in ex.inputs:
+
+            for j, v in enumerate(ex.inputs):
+                if j > 0:
+                    tokens.append(",")
                 tokens.extend(_value_to_tokens(v))
+
             tokens.append("return")
-            for v in ex.outputs:
+
+            for j, v in enumerate(ex.outputs):
+                if j > 0:
+                    tokens.append(",")
                 tokens.extend(_value_to_tokens(v))
+
             tokens.append("\n")
 
     tokens += [SPEC_END_TOKEN, "\n"]
