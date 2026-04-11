@@ -75,12 +75,13 @@ def collect_valid_snippets(
             break
 
         prompt = random.choice(prompts)
-        response = inference.complete(
+        tokens = inference.complete(
             prompt          = prompt,
             max_new_tokens  = config.max_new_tokens,
             temperature     = config.temperature,
             top_k           = config.top_k,
         )
+        response = inference.tokenizer.tokens_to_source(tokens)
 
         snippet = CodeSnippet(
             name        = "selfplay",

@@ -87,10 +87,8 @@ class Inference:
         max_new_tokens:         int,
         temperature:            float,
         top_k:                  Optional[int],
-        skip_special_tokens:    bool = True,
-        indent:                 int = 4,
-    ) -> str:
-        """Génère depuis une séquence d'ids et retourne le texte décodé."""
+    ) -> List[int]:
+        """Génère depuis une séquence d'ids et retourne la séquence d'ids complétée."""
         tensor = torch.tensor(prompt_ids, dtype=torch.long).unsqueeze(0).to(self.device)
 
         output = self.model.generate(
@@ -99,13 +97,8 @@ class Inference:
             temperature=temperature,
             top_k=top_k,
         )
-
-        flat = output[0].tolist()
-        return self.tokenizer.decode_str(
-            flat[1:], # retirer BOS
-            skip_special_tokens=skip_special_tokens,
-            indent=indent,
-        )
+        return output[0].tolist()
+    
 
     # ── Modèle de fondation ───────────────────────────────────────────────────
 
@@ -115,21 +108,25 @@ class Inference:
         max_new_tokens: int            = 128,
         temperature:    float          = 1.0,
         top_k:          Optional[int]  = None,
-        indent:         int            = 4,
-    ) -> str:
+        skip_special_tokens:  bool     = True,
+        return_full_sequence: bool     = False,
+    ) -> List[str]:
         """
-        Complète un prompt source (modèle de fondation).
+        Complète un prompt source (modèle de fondation) et retourne une liste de tokens.
         """
         ids = self.tokenizer.encode(prompt, add_special_tokens=False)
         ids = [BOS_ID] + ids
 
-        return self._generate(
+        flat = self._generate(
             prompt_ids     = ids,
             max_new_tokens = max_new_tokens,
             temperature    = temperature,
             top_k          = top_k,
-            indent         = indent,
         )
+
+        output_ids = flat if return_full_sequence else flat[1:] # retire BOS
+        return self.tokenizer.decode(output_ids, skip_special_tokens)
+
     
     
     # ── Modèle Instruct ───────────────────────────────────────────────────────
@@ -141,10 +138,11 @@ class Inference:
         max_new_tokens: int            = 128,
         temperature:    float          = 1.0,
         top_k:          Optional[int]  = None,
-        indent:         int            = 4,
-    ) -> str:
+        skip_special_tokens:  bool     = True,
+        return_full_sequence: bool     = False, 
+    ) -> List[str]:
         """
-        Complète depuis une spécification (modèle instruct).
+        Complète depuis une spécification (modèle instruct) et retourne une liste de tokens.
 
         La séquence de prompt est : BOS + spec_tokens [+ code_partiel]
         Le modèle génère le code qui suit la spécification.
@@ -152,21 +150,61 @@ class Inference:
         prompt : code partiel optionnel ajouté après la spécification
         """
         # BOS + spec (sans EOS, le modèle complète)
-        ids = self.tokenizer.encode_instruct(specification, source=None)
+        prompt_ids = self.tokenizer.encode_instruct(specification, source=None)
+        n_prompt   = len(prompt_ids) 
 
         # code partiel optionnel ajouté après la spec
         if prompt:
             partial_ids = self.tokenizer.encode(prompt, add_special_tokens=False)
-            ids = ids + partial_ids
+            prompt_ids = prompt_ids + partial_ids
 
-        return self._generate(
-            prompt_ids     = ids,
+        flat = self._generate(
+            prompt_ids     = prompt_ids,
             max_new_tokens = max_new_tokens,
             temperature    = temperature,
             top_k          = top_k,
-            indent         = indent,
         )
+        
+        output_ids = flat if return_full_sequence else flat[n_prompt:] # retire prompt
+        return self.tokenizer.decode(output_ids, skip_special_tokens)
     
+
+    # ── Complétion ────────────────────────────────────────────────────────────
+
+    def completion(
+        self,
+        specification:  ProgramSpecification | None = None,
+        prompt:         str | None                  = None,
+        indent:         int                         = 4,
+        max_new_tokens: int                         = 128,
+        temperature:    float                       = 1.0,
+        top_k:          Optional[int]               = None,
+        skip_special_tokens:  bool                  = True,
+        return_full_sequence: bool                  = False,
+    ) -> str:
+        
+        if specification is None:
+            tokens = self.complete(
+                prompt=prompt,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                top_k=top_k,
+                skip_special_tokens=skip_special_tokens,
+                return_full_sequence=return_full_sequence
+            )
+        else:
+            tokens = self.complete_instruct(
+                specification=specification,
+                prompt=prompt,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                top_k=top_k,
+                skip_special_tokens=skip_special_tokens,
+                return_full_sequence=return_full_sequence
+            )
+
+        return self.tokenizer.tokens_to_source(tokens, indent=indent)
+
 
     # ── Info ──────────────────────────────────────────────────────────────────
 

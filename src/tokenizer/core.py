@@ -133,62 +133,113 @@ class LanguageTokenizer:
             result.append(tok)
         return result
 
-    def decode_str(
-        self, 
-        ids: List[int], 
-        skip_special_tokens: bool = True, 
-        indent: Optional[int] = None
+
+    def tokens_to_source(
+        self,
+        tokens: List[str],
+        indent: Optional[int] = 4,
     ) -> str:
         """
-        Retourne une représentation lisible (espace entre tokens).
-        Si `indent` est fourni (ex: 4), le code sera automatiquement indenté.
+        Reconstruit un programme source lisible depuis une liste de tokens strings.
+
+        Règles :
+        - Les chiffres et '.' consécutifs sont collés en nombre
+        - Le '-' précédant immédiatement un groupe numérique est un signe unaire
+        si le token précédent est un opérateur, délimiteur ou mot-clé
+        - Les sauts de ligne '\n' sont émis tels quels
+        - L'indentation est gérée par les tokens then/do/else/endif/endwhile
+        - Un espace est ajouté entre les tokens sauf avant '\n'
         """
-        tokens = self.decode(ids, skip_special_tokens=skip_special_tokens)
-        parts = []
-        index = 0
+        DIGIT_CHARS = self.DIGIT_CHARS  # set('0123456789.')
 
-        current_indent = 0
-        is_new_line = True
+        # Tokens qui induisent un '-' unaire (pas un opérateur binaire)
+        UNARY_TRIGGERS = {
+            '=', '(', '+', '-', '*', '/', '%',
+            '==', '!=', '<', '>', '<=', '>=',
+            'and', 'or', 'not',
+            'then', 'do', 'else', 'if', 'while',
+            'input', 'output', 'return',
+            '\n', None,   # début de ligne ou début de séquence
+        }
 
-        while index < len(tokens):
-            token = tokens[index]
+        # Tokens de spec où '-' est toujours unaire (pas d'expression binaire)
+        SPEC_LINE_STARTERS = {'example', 'input-type', 'output-type'}
 
-            # Saut de ligne
-            if token == '\n':
+        parts: List[str] = []
+        current_indent   = 0
+        is_new_line      = True
+        in_spec_line     = False
+        prev_token: Optional[str] = None
+
+        i = 0
+        while i < len(tokens):
+            tok = tokens[i]
+
+            # ── Saut de ligne ─────────────────────────────────────────────────────
+            if tok == '\n':
+                # Retire l'espace traînant
                 if parts and parts[-1] == ' ':
                     parts.pop()
                 parts.append('\n')
-                is_new_line = True
-                index += 1
+                is_new_line  = True
+                in_spec_line = False
+                prev_token   = '\n'
+                i += 1
                 continue
-            
-            # 1. Ajuster l'indentation (diminution)
-            if indent is not None:
-                if token in ('endif', 'endwhile', 'else'):
-                    current_indent = max(0, current_indent - 1)
-                
-                if is_new_line:
-                    parts.append(' ' * (current_indent * indent))
-                    is_new_line = False
 
-            # 2. Reconstruire les nombres / Ajouter le token courant
-            if token in self.DIGIT_CHARS:
+            # ── Indentation décroissante (avant écriture) ─────────────────────────
+            if indent is not None and tok in ('endif', 'endwhile', 'else'):
+                current_indent = max(0, current_indent - 1)
+
+            # ── Indentation en début de ligne ─────────────────────────────────────
+            if indent is not None and is_new_line:
+                parts.append(' ' * (current_indent * indent))
+                is_new_line = False
+
+            # ── Contexte spec (exemple : ligne 'example ...' ou 'input-type ...') ─
+            if tok in SPEC_LINE_STARTERS:
+                in_spec_line = True
+
+            # ── Détection signe unaire ────────────────────────────────────────────
+            is_unary = (
+                tok == '-'
+                and (i + 1) < len(tokens)
+                and tokens[i + 1] in DIGIT_CHARS - {'.'}  # suivi d'un chiffre
+                and (in_spec_line or prev_token in UNARY_TRIGGERS)
+            )
+
+            # ── Nombre (éventuellement précédé d'un signe unaire) ─────────────────
+            if tok in DIGIT_CHARS or is_unary:
                 num = ''
-                while index < len(tokens) and tokens[index] in self.DIGIT_CHARS:
-                    num += tokens[index]
-                    index += 1
+                if is_unary:
+                    num += '-'
+                    i += 1
+
+                has_dot = False
+                while i < len(tokens) and tokens[i] in DIGIT_CHARS:
+                    c = tokens[i]
+                    if c == '.':
+                        if has_dot:
+                            break      # deuxième point → nouveau nombre, on arrête
+                        has_dot = True
+                    num += c
+                    i += 1
+
                 parts.append(num)
+                prev_token = num  # le nombre entier comme token "précédent"
+
+            # ── Token ordinaire ───────────────────────────────────────────────────
             else:
-                parts.append(token)
-                index += 1
+                parts.append(tok)
+                prev_token = tok
+                i += 1
 
-            # 3. Ajuster l'indentation (augmentation)
-            if indent is not None:
-                if token in ('then', 'do', 'else'):
-                    current_indent += 1
+            # ── Indentation croissante (après écriture) ───────────────────────────
+            if indent is not None and tok in ('then', 'do', 'else'):
+                current_indent += 1
 
-            # 4. Ajouter un espace d'espacement si le prochain n'est pas un saut de ligne
-            if index < len(tokens) and tokens[index] != '\n':
+            # ── Espace séparateur (sauf avant '\n') ───────────────────────────────
+            if i < len(tokens) and tokens[i] != '\n':
                 parts.append(' ')
 
         return ''.join(parts)
