@@ -272,3 +272,40 @@ class Trainer:
             "val_loss":     val_loss,
             "model_config": asdict(self.model_config),
         }, path)
+
+
+# ─── Helpers checkpoint ───────────────────────────────────────────────────────
+
+def _save_temp_checkpoint(
+    model: NextTokenTransformer,
+    model_config: ModelConfig,
+    path: Path,
+) -> None:
+    """Sauvegarde un modèle en mémoire dans un fichier temporaire."""
+    from dataclasses import asdict
+    torch.save({
+        "epoch":        0,
+        "model_state":  model.state_dict(),
+        "optimizer":    {},
+        "train_loss":   None,
+        "val_loss":     None,
+        "model_config": asdict(model_config),
+    }, path)
+
+
+def resolve_model(
+    base_model: str | NextTokenTransformer,
+    model_config: ModelConfig,
+    checkpoint_dir: Path,
+) -> str:
+    """
+    Retourne un chemin de checkpoint utilisable.
+    Si base_model est déjà un chemin → retourné tel quel.
+    Si base_model est un NextTokenTransformer → sauvegardé dans un .pt temporaire.
+    """
+    if isinstance(base_model, str):
+        return base_model
+
+    tmp_path = checkpoint_dir / "base_model_tmp.pt"
+    _save_temp_checkpoint(base_model, model_config, tmp_path)
+    return str(tmp_path)

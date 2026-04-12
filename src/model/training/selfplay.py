@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Callable, List, Optional
 
 
-
 from src.data.snippet import CodeSnippet
 from src.data.file import validate_snippet, flush_snippets
 from src.data.scorer import SnippetScorer
@@ -15,12 +14,11 @@ from src.model.config import ModelConfig
 from src.model.inference import Inference
 from src.model.transformer import NextTokenTransformer
 
-from .trainer import TrainConfig
+from .trainer import TrainConfig, resolve_model
 from .foundation import train_foundation
 
 
 # ─── Config ───────────────────────────────────────────────────────────────────
-
 
 @dataclass
 class SelfPlayConfig:
@@ -35,7 +33,7 @@ class SelfPlayConfig:
     temperature:        float = 1.0
     top_k:              Optional[int] = 20
 
-    # Fine-tuning par cycle; LR réintialisé, peu d'epochs
+    # Fine-tuning par cycle
     finetune_epochs:    int   = 3
     finetune_lr:        float = 1e-5
     batch_size:         int   = 16
@@ -100,43 +98,6 @@ def collect_valid_snippets(
     return valid
 
 
-# ─── Helpers checkpoint ───────────────────────────────────────────────────────
-
-def _save_temp_checkpoint(
-    model: NextTokenTransformer,
-    model_config: ModelConfig,
-    path: Path,
-) -> None:
-    """Sauvegarde un modèle en mémoire dans un fichier temporaire."""
-    from dataclasses import asdict
-    torch.save({
-        "epoch":        0,
-        "model_state":  model.state_dict(),
-        "optimizer":    {},
-        "train_loss":   None,
-        "val_loss":     None,
-        "model_config": asdict(model_config),
-    }, path)
-
-
-def _resolve_model(
-    base_model: str | NextTokenTransformer,
-    model_config: ModelConfig,
-    checkpoint_dir: Path,
-) -> str:
-    """
-    Retourne un chemin de checkpoint utilisable.
-    Si base_model est déjà un chemin → retourné tel quel.
-    Si base_model est un NextTokenTransformer → sauvegardé dans un .pt temporaire.
-    """
-    if isinstance(base_model, str):
-        return base_model
-
-    tmp_path = checkpoint_dir / "base_model_tmp.pt"
-    _save_temp_checkpoint(base_model, model_config, tmp_path)
-    return str(tmp_path)
-
-
 # ─── Boucle self-play ─────────────────────────────────────────────────────────
 
 def self_play(
@@ -170,7 +131,7 @@ def self_play(
     output_dir.mkdir(parents=True, exist_ok=True)
     ckpt_dir.mkdir(parents=True, exist_ok=True)
 
-    current_checkpoint = _resolve_model(base_model, model_config, ckpt_dir)
+    current_checkpoint = resolve_model(base_model, model_config, ckpt_dir)
 
     # replay buffer (accumule plusieurs fichiers)
     generated_files: List[str] = []
